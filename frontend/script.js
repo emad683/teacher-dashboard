@@ -107,7 +107,7 @@ function navigateTo(pageId) {
 }
 
 // --- Authentication ---
-document.getElementById('login-form').addEventListener('submit', async (e) => {
+document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
@@ -150,7 +150,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     }
 });
 
-document.getElementById('btn-logout').addEventListener('click', () => {
+document.getElementById('btn-logout')?.addEventListener('click', () => {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('username');
     sessionStorage.removeItem('role');
@@ -169,7 +169,7 @@ function updateDateDisplay() {
     document.getElementById('current-date').innerText = new Date().toLocaleDateString('ar-EG', options);
 }
 
-document.getElementById('btn-mobile-menu').addEventListener('click', () => {
+document.getElementById('btn-mobile-menu')?.addEventListener('click', () => {
     document.querySelector('.sidebar').classList.toggle('open');
 });
 
@@ -323,7 +323,7 @@ document.getElementById('btn-add-group').addEventListener('click', () => {
     openModal('modal-group');
 });
 
-document.getElementById('group-form').addEventListener('submit', (e) => {
+document.getElementById('group-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const grade = parseInt(document.getElementById('group-grade-val').value);
     
@@ -503,7 +503,7 @@ function prepareAddStudentForm() {
     });
 }
 
-document.getElementById('student-form').addEventListener('submit', (e) => {
+document.getElementById('student-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     
     const customPriceInput = document.getElementById('student-custom-price').value;
@@ -596,7 +596,7 @@ function openEditExamModal(examId) {
     document.getElementById('modal-edit-exam').classList.remove('hidden');
 }
 
-document.getElementById('edit-exam-form').addEventListener('submit', (e) => {
+document.getElementById('edit-exam-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const examId = parseInt(document.getElementById('edit-exam-id').value);
     const score = parseFloat(document.getElementById('edit-exam-score').value);
@@ -660,7 +660,7 @@ function openManualPaymentModal() {
     document.getElementById('manual-payment-amount').value = actualPrice;
 }
 
-document.getElementById('manual-payment-form').addEventListener('submit', (e) => {
+document.getElementById('manual-payment-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const amount = parseFloat(document.getElementById('manual-payment-amount').value);
     let monthStr = document.getElementById('manual-payment-month').value;
@@ -717,7 +717,7 @@ function renderExamsInit() {
     document.getElementById('entry-group-select').disabled = true;
 }
 
-document.getElementById('create-exam-form').addEventListener('submit', (e) => {
+document.getElementById('create-exam-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const grade = parseInt(document.getElementById('new-exam-grade').value);
     const name = document.getElementById('new-exam-name').value;
@@ -745,7 +745,7 @@ document.getElementById('create-exam-form').addEventListener('submit', (e) => {
     }
 });
 
-document.getElementById('entry-exam-grade').addEventListener('change', (e) => {
+document.getElementById('entry-exam-grade')?.addEventListener('change', (e) => {
     const grade = parseInt(e.target.value);
     const examSelect = document.getElementById('entry-exam-select');
     const groupSelect = document.getElementById('entry-group-select');
@@ -811,10 +811,10 @@ function loadBulkStudentsTable() {
     container.classList.remove('hidden');
 }
 
-document.getElementById('entry-exam-select').addEventListener('change', loadBulkStudentsTable);
-document.getElementById('entry-group-select').addEventListener('change', loadBulkStudentsTable);
+document.getElementById('entry-exam-select')?.addEventListener('change', loadBulkStudentsTable);
+document.getElementById('entry-group-select')?.addEventListener('change', loadBulkStudentsTable);
 
-document.getElementById('btn-save-bulk-exam').addEventListener('click', () => {
+document.getElementById('btn-save-bulk-exam')?.addEventListener('click', () => {
     const examId = parseInt(document.getElementById('entry-exam-select').value);
     const globalExam = appData.globalExams.find(ex => ex.id === examId);
     
@@ -1087,7 +1087,7 @@ function renderProgress() {
     });
 }
 
-document.getElementById('add-task-form').addEventListener('submit', (e) => {
+document.getElementById('add-task-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const grade = appData.currentProgressGrade;
     const input = document.getElementById('new-task-title');
