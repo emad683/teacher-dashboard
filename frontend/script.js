@@ -12,7 +12,8 @@ let appData = {
     },
     currentGradeView: 1,
     currentProgressGrade: 1,
-    currentStudentView: null
+    currentStudentView: null,
+    globalExams: []
 };
 
 const gradeNames = {
