@@ -36,6 +36,7 @@ async function initData() {
                 if(!appData.progress) appData.progress = {1:[], 2:[], 3:[]};
                 if(!appData.gradePrices) appData.gradePrices = {1:0, 2:0, 3:0};
                 if(!appData.payments) appData.payments = [];
+                if(!appData.globalExams) appData.globalExams = [];
             } else {
                 await saveData();
             }
@@ -694,45 +695,112 @@ function closeModal(id) {
     document.getElementById(id).classList.add('hidden');
 }
 
-// --- Quick Exams Entry Page ---
+// --- Global Exams & Bulk Entry Page ---
 function renderExamsInit() {
-    const gradeSelect = document.getElementById('exam-grade-select');
-    gradeSelect.innerHTML = '<option value="">اختر المستوى...</option>';
+    const newExamGradeSelect = document.getElementById('new-exam-grade');
+    const entryExamGradeSelect = document.getElementById('entry-exam-grade');
+    
+    newExamGradeSelect.innerHTML = '<option value="">اختر المستوى...</option>';
+    entryExamGradeSelect.innerHTML = '<option value="">اختر المستوى أولاً...</option>';
+    
     [1, 2, 3].forEach(g => {
-        gradeSelect.innerHTML += `<option value="${g}">${gradeNames[g]}</option>`;
+        newExamGradeSelect.innerHTML += `<option value="${g}">${gradeNames[g]}</option>`;
+        entryExamGradeSelect.innerHTML += `<option value="${g}">${gradeNames[g]}</option>`;
     });
     
-    document.getElementById('exam-students-container').classList.add('hidden');
-    document.getElementById('quick-exam-form').reset();
+    document.getElementById('bulk-exam-container').classList.add('hidden');
+    document.getElementById('create-exam-form').reset();
+    document.getElementById('entry-exam-select').innerHTML = '<option value="">اختر الامتحان...</option>';
+    document.getElementById('entry-exam-select').disabled = true;
+    document.getElementById('entry-group-select').innerHTML = '<option value="">اختر المجموعة...</option>';
+    document.getElementById('entry-group-select').disabled = true;
 }
 
-document.getElementById('exam-grade-select').addEventListener('change', (e) => {
+document.getElementById('create-exam-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const grade = parseInt(document.getElementById('new-exam-grade').value);
+    const name = document.getElementById('new-exam-name').value;
+    const max = parseFloat(document.getElementById('new-exam-max').value);
+    
+    if(!grade || !name || isNaN(max)) return;
+    
+    const newId = appData.globalExams.length > 0 ? Math.max(...appData.globalExams.map(ex => ex.id)) + 1 : 1;
+    appData.globalExams.push({
+        id: newId,
+        grade: grade,
+        name: name,
+        max: max,
+        date: new Date().toISOString().split('T')[0]
+    });
+    
+    saveData();
+    alert('تم إنشاء الامتحان بنجاح. يمكنك الآن رصد الدرجات له.');
+    document.getElementById('create-exam-form').reset();
+    
+    // Refresh the entry dropdown if the same grade is selected
+    const selectedGradeForEntry = parseInt(document.getElementById('entry-exam-grade').value);
+    if(selectedGradeForEntry === grade) {
+        document.getElementById('entry-exam-grade').dispatchEvent(new Event('change'));
+    }
+});
+
+document.getElementById('entry-exam-grade').addEventListener('change', (e) => {
     const grade = parseInt(e.target.value);
-    const container = document.getElementById('exam-students-container');
+    const examSelect = document.getElementById('entry-exam-select');
+    const groupSelect = document.getElementById('entry-group-select');
+    document.getElementById('bulk-exam-container').classList.add('hidden');
+    
+    examSelect.innerHTML = '<option value="">اختر الامتحان...</option>';
+    groupSelect.innerHTML = '<option value="">اختر المجموعة...</option>';
+    
+    if (!grade) {
+        examSelect.disabled = true;
+        groupSelect.disabled = true;
+        return;
+    }
+    
+    const gradeExams = appData.globalExams.filter(ex => ex.grade === grade);
+    gradeExams.forEach(ex => {
+        examSelect.innerHTML += `<option value="${ex.id}">${ex.name} (من ${ex.max})</option>`;
+    });
+    
+    const gradeGroups = appData.groups.filter(g => g.grade === grade);
+    gradeGroups.forEach(g => {
+        groupSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+    });
+    
+    examSelect.disabled = false;
+    groupSelect.disabled = false;
+});
+
+function loadBulkStudentsTable() {
+    const grade = parseInt(document.getElementById('entry-exam-grade').value);
+    const examId = parseInt(document.getElementById('entry-exam-select').value);
+    const groupId = parseInt(document.getElementById('entry-group-select').value);
+    const container = document.getElementById('bulk-exam-container');
     const tbody = document.querySelector('#exam-entry-table tbody');
     tbody.innerHTML = '';
-
-    if (!grade) {
+    
+    if (!grade || !examId || !groupId) {
         container.classList.add('hidden');
         return;
     }
-
-    const targetStudents = appData.students.filter(s => s.grade === grade);
+    
+    const targetStudents = appData.students.filter(s => s.groupId === groupId);
     
     if(targetStudents.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد طلاب في هذا المستوى</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">لا يوجد طلاب في هذه المجموعة</td></tr>';
     } else {
         targetStudents.forEach(s => {
-            const group = appData.groups.find(g => g.id === s.groupId);
+            const existingExam = s.exams.find(ex => ex.name === appData.globalExams.find(e => e.id === examId).name);
+            const defaultVal = existingExam ? existingExam.score : 0;
+            
             tbody.innerHTML += `
-                <tr>
-                    <td><strong>${s.name}</strong> <small class="text-muted">(#${s.internalGroupId||s.id})</small></td>
-                    <td>${group ? group.name : ''}</td>
+                <tr data-student-id="${s.id}">
+                    <td>#${s.internalGroupId||s.id}</td>
+                    <td><strong>${s.name}</strong></td>
                     <td>
-                        <input type="number" id="score-input-${s.id}" class="form-control" placeholder="الدرجة" style="width: 120px;" min="0">
-                    </td>
-                    <td>
-                        <button class="btn btn-sm btn-primary" onclick="saveQuickExam(${s.id})">حفظ للملف</button>
+                        <input type="number" class="form-control bulk-score-input" value="${defaultVal}" min="0" style="width: 150px;">
                     </td>
                 </tr>
             `;
@@ -740,38 +808,49 @@ document.getElementById('exam-grade-select').addEventListener('change', (e) => {
     }
     
     container.classList.remove('hidden');
-});
+}
 
-function saveQuickExam(studentId) {
-    const nameInput = document.getElementById('exam-name-input').value;
-    const maxInput = document.getElementById('exam-max-input').value;
-    const scoreInput = document.getElementById(`score-input-${studentId}`).value;
+document.getElementById('entry-exam-select').addEventListener('change', loadBulkStudentsTable);
+document.getElementById('entry-group-select').addEventListener('change', loadBulkStudentsTable);
 
-    if(!nameInput || !maxInput || scoreInput === "") {
-        alert('يرجى التأكد من إدخال اسم الامتحان، الدرجة النهائية، ودرجة الطالب.');
-        return;
-    }
-
-    const student = appData.students.find(s => s.id === studentId);
-    const newExamId = student.exams.length > 0 ? Math.max(...student.exams.map(ex => ex.id)) + 1 : 1;
+document.getElementById('btn-save-bulk-exam').addEventListener('click', () => {
+    const examId = parseInt(document.getElementById('entry-exam-select').value);
+    const globalExam = appData.globalExams.find(ex => ex.id === examId);
     
-    student.exams.push({
-        id: newExamId,
-        name: nameInput,
-        date: new Date().toISOString().split('T')[0],
-        score: parseFloat(scoreInput),
-        max: parseFloat(maxInput)
+    if(!globalExam) return;
+    
+    const rows = document.querySelectorAll('#exam-entry-table tbody tr[data-student-id]');
+    if(rows.length === 0) return;
+    
+    rows.forEach(row => {
+        const studentId = parseInt(row.getAttribute('data-student-id'));
+        const scoreInput = row.querySelector('.bulk-score-input');
+        if(!scoreInput) return;
+        
+        const score = parseFloat(scoreInput.value) || 0;
+        const student = appData.students.find(s => s.id === studentId);
+        if(!student) return;
+        
+        const existingExamIndex = student.exams.findIndex(ex => ex.name === globalExam.name);
+        
+        if (existingExamIndex !== -1) {
+            student.exams[existingExamIndex].score = score;
+            student.exams[existingExamIndex].max = globalExam.max;
+        } else {
+            const newExamId = student.exams.length > 0 ? Math.max(...student.exams.map(e => e.id)) + 1 : 1;
+            student.exams.push({
+                id: newExamId,
+                name: globalExam.name,
+                date: new Date().toISOString().split('T')[0],
+                score: score,
+                max: globalExam.max
+            });
+        }
     });
     
     saveData();
-    
-    // Visual feedback
-    const btn = document.querySelector(`button[onclick="saveQuickExam(${studentId})"]`);
-    btn.innerHTML = '<i class="fas fa-check"></i> تم';
-    btn.classList.replace('btn-primary', 'btn-success');
-    btn.disabled = true;
-    document.getElementById(`score-input-${studentId}`).disabled = true;
-}
+    alert('تم حفظ جميع الدرجات بنجاح!');
+});
 
 function filterExamStudents() {
     const input = document.getElementById('exam-search-input').value.toLowerCase();

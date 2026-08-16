@@ -194,50 +194,82 @@
 
                 <!-- 3. الامتحانات (صفحة إدخال الدرجات) -->
                 <div id="page-exams" class="page-content hidden">
-                    <div class="card">
+                    
+                    <!-- قسم إنشاء امتحان جديد -->
+                    <div class="card mb-4">
                         <div class="card-header">
-                            <h3>تسجيل درجات الامتحانات السريع</h3>
+                            <h3>إنشاء امتحان جديد للمستوى</h3>
                         </div>
                         <div class="card-body">
-                            <form id="quick-exam-form" class="mb-4 pb-4 border-bottom">
-                                <div class="form-row">
-                                    <div class="form-group half">
-                                        <label>المستوى (الصف)</label>
-                                        <select id="exam-grade-select" required>
-                                            <option value="">اختر المستوى...</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group half">
-                                        <label>اسم الامتحان</label>
-                                        <input type="text" id="exam-name-input" placeholder="مثال: امتحان شهر أكتوبر" required>
-                                    </div>
+                            <form id="create-exam-form" class="form-row">
+                                <div class="form-group flex-1">
+                                    <label>المستوى (الصف)</label>
+                                    <select id="new-exam-grade" required>
+                                        <option value="">اختر المستوى...</option>
+                                    </select>
                                 </div>
-                                <div class="form-row">
-                                    <div class="form-group half">
-                                        <label>الدرجة النهائية</label>
-                                        <input type="number" id="exam-max-input" min="1" value="100" required>
-                                    </div>
+                                <div class="form-group flex-1">
+                                    <label>اسم الامتحان</label>
+                                    <input type="text" id="new-exam-name" placeholder="مثال: امتحان شهر أكتوبر" required>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label>الدرجة النهائية</label>
+                                    <input type="number" id="new-exam-max" min="1" value="100" required>
+                                </div>
+                                <div class="form-group" style="display: flex; align-items: flex-end;">
+                                    <button type="submit" class="btn btn-primary" style="height: 42px;"><i class="fas fa-plus"></i> إنشاء الامتحان</button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- قسم رصد الدرجات للمجموعة -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3>رصد درجات امتحان لمجموعة</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="form-row mb-4 pb-4 border-bottom">
+                                <div class="form-group flex-1">
+                                    <label>المستوى (الصف)</label>
+                                    <select id="entry-exam-grade" required>
+                                        <option value="">اختر المستوى أولاً...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label>اختر الامتحان</label>
+                                    <select id="entry-exam-select" disabled required>
+                                        <option value="">اختر الامتحان...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label>اختر المجموعة</label>
+                                    <select id="entry-group-select" disabled required>
+                                        <option value="">اختر المجموعة...</option>
+                                    </select>
+                                </div>
+                            </div>
                             
-                            <div id="exam-students-container" class="hidden">
+                            <div id="bulk-exam-container" class="hidden">
                                 <div class="flex-between align-center mb-3">
-                                    <h4 class="mb-0">أدخل درجات الطلاب:</h4>
+                                    <h4 class="mb-0">قائمة طلاب المجموعة:</h4>
                                     <input type="text" id="exam-search-input" class="form-control" placeholder="بحث باسم الطالب..." style="width: 250px;" onkeyup="filterExamStudents()">
                                 </div>
                                 <table class="table" id="exam-entry-table">
                                     <thead>
                                         <tr>
+                                            <th>الرقم</th>
                                             <th>الطالب</th>
-                                            <th>المجموعة</th>
                                             <th>الدرجة التي حصل عليها</th>
-                                            <th>إجراء</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         <!-- يُضاف عبر JS -->
                                     </tbody>
                                 </table>
+                                <div class="mt-4 text-center">
+                                    <button class="btn btn-success btn-lg" id="btn-save-bulk-exam" style="padding: 0.75rem 3rem;"><i class="fas fa-save"></i> حفظ درجات جميع الطلاب</button>
+                                </div>
                             </div>
                         </div>
                     </div>
