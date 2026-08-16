@@ -249,6 +249,8 @@ input:focus, select:focus { outline: none; border-color: var(--primary); box-sha
     .form-row { flex-direction: column; gap: 0; }
 }
 
+.print-only { display: none; }
+
 /* --- Print Styles --- */
 @media print {
     body { background: white; color: black; margin: 0; padding: 0; }
