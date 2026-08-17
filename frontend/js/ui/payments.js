@@ -89,80 +89,79 @@ export function deletePayment(paymentId) {
 
 const origRenderPayments = renderPayments;
 export function renderPayments() {
-    const monthSelect = document.getElementById('filter-payment-month');
-    const sortVal = document.getElementById('sort-payments')?.value || 'date-desc';
+    const monthInput = document.getElementById('payment-month-filter');
+    const searchInput = document.getElementById('payment-search-input')?.value.toLowerCase() || '';
     const gradeSelect = document.getElementById('payment-grade-filter');
-    const selectedGrade = gradeSelect ? parseInt(gradeSelect.value) : 0;
     
-    // populate months
-    const months = [...new Set(appData.payments.map(p => {
-        if(p.targetMonth) return p.targetMonth;
-        const d = new Date(p.date);
-        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-    }))].sort().reverse();
+    if (!monthInput) return;
+    
+    if (!monthInput.value) {
+        const d = new Date();
+        monthInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }
+    const selectedMonth = monthInput.value;
+    const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+    const isCurrentMonth = selectedMonth === currentMonth;
 
-    if(monthSelect.options.length <= 1) {
-        monthSelect.innerHTML = '<option value="all">كل الشهور</option>';
-        months.forEach(m => {
-            monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
-        });
-        if(months.length > 0) monthSelect.value = months[0];
-    }
-    
-    const selectedMonth = monthSelect.value;
-    
-    let filtered = appData.payments;
-    
-    if (selectedGrade) {
-        filtered = filtered.filter(p => {
-            const s = appData.students.find(st => st.id === p.studentId);
-            return s && s.grade === selectedGrade;
+    if (gradeSelect && gradeSelect.options.length <= 1) {
+        gradeSelect.innerHTML = '<option value="all">كل المستويات</option>';
+        [1, 2, 3].forEach(g => {
+            gradeSelect.innerHTML += `<option value="${g}">${gradeNames[g]}</option>`;
         });
     }
-
-    if(selectedMonth !== 'all') {
-        filtered = filtered.filter(p => {
-            const m = p.targetMonth || (new Date(p.date).getFullYear() + '-' + String(new Date(p.date).getMonth() + 1).padStart(2, '0'));
-            return m === selectedMonth;
-        });
-    }
-    
-    filtered.sort((a,b) => {
-        if(sortVal === 'date-desc') return new Date(b.date) - new Date(a.date);
-        if(sortVal === 'date-asc') return new Date(a.date) - new Date(b.date);
-        if(sortVal === 'amount-desc') return b.amount - a.amount;
-        return 0;
-    });
+    const selectedGrade = gradeSelect ? gradeSelect.value : 'all';
 
     const tbody = document.querySelector('#payments-table tbody');
     if(!tbody) return;
     tbody.innerHTML = '';
-    
-    let totalRev = 0;
-    let todayRev = 0;
-    const todayStr = new Date().toISOString().split('T')[0];
 
-    filtered.forEach(p => {
-        totalRev += p.amount;
-        const d = new Date(p.date);
-        if(d.toISOString().split('T')[0] === todayStr) todayRev += p.amount;
+    let filteredStudents = appData.students;
+    if (selectedGrade !== 'all') {
+        filteredStudents = filteredStudents.filter(s => s.grade === parseInt(selectedGrade));
+    }
+    if (searchInput) {
+        filteredStudents = filteredStudents.filter(s => s.name.toLowerCase().includes(searchInput));
+    }
+
+    filteredStudents.forEach(s => {
+        const group = appData.groups.find(g => g.id === s.groupId);
         
-        const s = appData.students.find(st => st.id === p.studentId);
-        const notesStr = p.notes ? `<br><small class="text-muted">${p.notes}</small>` : '';
+        const hasPaid = appData.payments.some(p => p.studentId === s.id && (p.targetMonth === selectedMonth || p.date.startsWith(selectedMonth)));
+        
+        let statusBadge = hasPaid ? '<span class="badge badge-success">تم الدفع</span>' : '<span class="badge badge-danger">غير مدفوع</span>';
+        if (s.paymentStatus === 'special') statusBadge = '<span class="badge badge-primary">خصم خاص</span>';
+
+        const btnClass = hasPaid ? 'btn-danger' : 'btn-success';
+        const btnText = hasPaid ? 'إلغاء الدفع' : 'دفع';
+        const newStatus = hasPaid ? 'unpaid' : 'paid';
+
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td>${d.toLocaleString('ar-EG')}</td>
-            <td>${s ? s.name : 'طالب محذوف'} ${notesStr}</td>
-            <td>${p.amount} ج.م</td>
+            <td>#${s.internalGroupId || s.id}</td>
+            <td><strong>${s.name}</strong></td>
+            <td>${group ? group.name : '-'}</td>
+            <td>${statusBadge}</td>
             <td>
-                <button class="btn btn-sm btn-outline text-danger" onclick="deletePaymentGlobal(${p.id})"><i class="fas fa-trash"></i></button>
+                <button class="btn btn-sm ${btnClass}" onclick="changePaymentStatusForMonth(${s.id}, '${newStatus}', '${selectedMonth}', ${isCurrentMonth})">${btnText}</button>
             </td>
         `;
         tbody.appendChild(tr);
     });
 
-    document.getElementById('stat-revenue-month').innerText = totalRev + ' ج.م';
-    document.getElementById('stat-revenue-today').innerText = todayRev + ' ج.م';
+    let totalRev = 0;
+    let todayRev = 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    appData.payments.forEach(p => {
+        const pMonth = p.targetMonth || p.date.substring(0, 7);
+        if (pMonth === selectedMonth) totalRev += p.amount;
+        if (p.date.split('T')[0] === todayStr) todayRev += p.amount;
+    });
+
+    const monthEl = document.getElementById('stat-revenue-month');
+    const todayEl = document.getElementById('stat-revenue-today');
+    if (monthEl) monthEl.innerText = totalRev + ' ج.م';
+    if (todayEl) todayEl.innerText = todayRev + ' ج.م';
 }
 
 export function changePaymentStatusForMonth(id, newStatus, monthStr, isCurrentMonth) {
@@ -172,39 +171,20 @@ export function changePaymentStatusForMonth(id, newStatus, monthStr, isCurrentMo
     const price = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
 
     if (isCurrentMonth) {
-        const oldStatus = student.paymentStatus;
         student.paymentStatus = newStatus;
+    }
 
-        if (newStatus === 'paid' && oldStatus !== 'paid') {
-            appData.payments.push({
-                id: Date.now(),
-                studentId: id,
-                amount: price,
-                date: new Date().toISOString()
-            });
-        } 
-        else if (oldStatus === 'paid' && newStatus !== 'paid') {
-            const paymentsReverse = [...appData.payments].reverse();
-            const latestPayment = paymentsReverse.find(p => p.studentId === id && p.date.startsWith(monthStr));
-            if (latestPayment) {
-                appData.payments = appData.payments.filter(p => p.id !== latestPayment.id);
-            }
-        }
+    if (newStatus === 'paid') {
+        appData.payments.push({
+            id: Date.now(),
+            studentId: id,
+            amount: price,
+            date: new Date().toISOString(),
+            targetMonth: monthStr
+        });
     } else {
-        // Changing past month
-        if (newStatus === 'paid') {
-            appData.payments.push({
-                id: Date.now(),
-                studentId: id,
-                amount: price,
-                // Add it to the 1st of the past month, but keep track of actual creation time if needed.
-                // For simplicity, date is set to the requested month.
-                date: `${monthStr}-01T12:00:00.000Z`
-            });
-        } else {
-            // Remove past payments for that month
-            appData.payments = appData.payments.filter(p => !(p.studentId === id && p.date.startsWith(monthStr)));
-        }
+        // Remove past payments for that month
+        appData.payments = appData.payments.filter(p => !(p.studentId === id && (p.targetMonth === monthStr || p.date.startsWith(monthStr))));
     }
 
     saveData();
