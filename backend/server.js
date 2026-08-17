@@ -54,14 +54,20 @@ app.post('/api/auth/login', async (req, res) => {
 
     try {
         const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+        if (result.rows.length === 0) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        }
+        
         const user = result.rows[0];
+        
+        if (user.is_active === false) {
+            return res.status(403).json({ error: 'تم إيقاف هذا الحساب مؤقتاً. يرجى مراجعة الإدارة.' });
+        }
 
-        if (!user) return res.status(401).json({ error: 'Invalid credentials' });
-
-        const validPassword = bcrypt.compareSync(password, user.password);
-        if (!validPassword) return res.status(401).json({ error: 'Invalid credentials' });
-
-        const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
+        const match = await bcrypt.compare(password, user.password);
+        if (!match) {
+            return res.status(401).json({ error: 'Invalid credentials' });
+        } const token = jwt.sign({ id: user.id, username: user.username, role: user.role }, JWT_SECRET, { expiresIn: '24h' });
         res.json({ token, role: user.role, username: user.username });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
@@ -71,7 +77,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Admin: Get all users
 app.get('/api/admin/users', authenticateToken, isAdmin, async (req, res) => {
     try {
-        const result = await pool.query('SELECT id, username, role FROM users');
+        const result = await pool.query('SELECT id, username, role, is_active FROM users');
         res.json(result.rows);
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
@@ -175,12 +181,33 @@ app.post('/api/user/data', authenticateToken, async (req, res) => {
     }
 });
 
+// Admin: Toggle user active status
+app.put('/api/admin/users/:id/status', authenticateToken, isAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { is_active } = req.body;
+    
+    if (parseInt(id) === req.user.id) {
+        return res.status(400).json({ error: 'لا يمكنك إيقاف حسابك الخاص' });
+    }
+
+    try {
+        await pool.query('UPDATE users SET is_active = $1 WHERE id = $2', [is_active, id]);
+        res.json({ message: 'User status updated successfully' });
+    } catch (err) {
+        res.status(500).json({ error: 'Database error' });
+    }
+});
+
 // Admin Dashboard Route
 app.get('/admin', (req, res) => {
     res.sendFile(path.join(__dirname, '../frontend/admin.html'));
 });
 
-// Start Server
-app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-});
+// Start Server or Export for Serverless
+if (process.env.VERCEL) {
+    module.exports = app;
+} else {
+    app.listen(PORT, () => {
+        console.log(`Server running on port ${PORT}`);
+    });
+}

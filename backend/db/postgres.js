@@ -30,13 +30,24 @@ const initDB = async () => {
             )
         `);
 
-        // Create default admin if not exists
-        const res = await pool.query("SELECT id FROM users WHERE username = 'admin'");
+        // Check if is_active column exists
+        const columnCheck = await pool.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name='users' and column_name='is_active'
+        `);
+        if(columnCheck.rows.length === 0) {
+            await pool.query("ALTER TABLE users ADD COLUMN is_active BOOLEAN DEFAULT true");
+            console.log("Added is_active column to users table.");
+        }
+
+        // Create default admin if NO ADMIN exists
+        const res = await pool.query("SELECT id FROM users WHERE role = 'admin'");
         if (res.rows.length === 0) {
             const hash = bcrypt.hashSync('admin', 10);
             await pool.query(
-                "INSERT INTO users (username, password, role) VALUES ($1, $2, $3)",
-                ['admin', hash, 'admin']
+                "INSERT INTO users (username, password, role, is_active) VALUES ($1, $2, $3, $4)",
+                ['admin', hash, 'admin', true]
             );
             console.log("Default admin account created (admin/admin)");
         }
