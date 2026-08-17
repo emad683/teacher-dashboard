@@ -102,7 +102,7 @@ export function deleteStudent(id) {
     }
 }
 
-export function deleteAllStudents() {
+export async function deleteAllStudents() {
     if(confirm('هل أنت متأكد من أنك تريد حذف جميع الطلاب من الموقع تماماً؟ هذا الإجراء لا يمكن التراجع عنه!')) {
         appData.students = [];
         appData.payments = [];
@@ -119,6 +119,7 @@ export function deleteAllStudents() {
                 });
             }
         }
+        await saveData();
         alert('تم تفريغ بيانات الطلاب، المدفوعات، الحضور، والامتحانات، مع الاحتفاظ بالمجموعات وإلغاء تحديد المهام.');
         window.location.reload();
     }
