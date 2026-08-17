@@ -214,6 +214,9 @@ export function deletePaymentGlobal(id) {
 
 export function initPayments() {
     document.getElementById('payment-grade-filter')?.addEventListener('change', renderPayments);
+    document.getElementById('payment-status-filter')?.addEventListener('change', renderPayments);
+    document.getElementById('payment-month-filter')?.addEventListener('change', renderPayments);
+    document.getElementById('payment-search-input')?.addEventListener('keyup', renderPayments);
     document.getElementById('sort-payments')?.addEventListener('change', renderPayments);
     document.getElementById('manual-payment-form')?.addEventListener('submit', (e) => {
         e.preventDefault();
