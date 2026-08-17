@@ -85,9 +85,12 @@ function renderUsers(users) {
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>#${u.id}</td>
-            <td><strong>${u.username}</strong></td>
+            <td><strong>${u.username}</strong> ${u.is_active === false ? '<span class="badge badge-danger">موقوف</span>' : ''}</td>
             <td><span class="badge ${u.role === 'admin' ? 'badge-primary' : 'badge-success'}">${u.role === 'admin' ? 'مدير' : 'معلم'}</span></td>
             <td>
+                <button class="btn btn-sm ${u.is_active !== false ? 'btn-outline text-warning' : 'btn-outline text-success'}" onclick="toggleUserStatus(${u.id}, ${u.is_active === false ? true : false})">
+                    <i class="fas ${u.is_active !== false ? 'fa-pause' : 'fa-play'}"></i> ${u.is_active !== false ? 'إيقاف مؤقت' : 'تفعيل'}
+                </button>
                 <button class="btn btn-sm btn-outline text-primary" onclick="editUser(${u.id}, '${u.username}', '${u.role}')"><i class="fas fa-edit"></i> تعديل</button>
                 <button class="btn btn-sm btn-outline text-danger" onclick="deleteUser(${u.id})"><i class="fas fa-trash"></i> حذف</button>
             </td>
@@ -162,6 +165,31 @@ window.deleteUser = async function(id) {
         const response = await fetch(`/api/admin/users/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+            fetchUsers();
+        } else {
+            const data = await response.json();
+            alert(data.error || 'حدث خطأ');
+        }
+    } catch (err) {
+        alert('حدث خطأ في الاتصال');
+    }
+};
+
+window.toggleUserStatus = async function(id, newStatus) {
+    if(!confirm(`هل أنت متأكد من ${newStatus ? 'تفعيل' : 'إيقاف'} هذا الحساب؟`)) return;
+    
+    const token = sessionStorage.getItem('adminToken');
+    try {
+        const response = await fetch(`/api/admin/users/${id}/status`, {
+            method: 'PUT',
+            headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}` 
+            },
+            body: JSON.stringify({ is_active: newStatus })
         });
         
         if (response.ok) {
