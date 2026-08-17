@@ -96,4 +96,4 @@ export function renderDashboard() {
                 </div>
             </div>
         `;
-    });
+    })};
