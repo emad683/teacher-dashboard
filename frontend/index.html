@@ -600,6 +600,13 @@
                                 onchange="renderPayments()">
                                 <option value="all">كل المستويات</option>
                             </select>
+                            <select id="payment-status-filter" class="form-control" style="width: auto;"
+                                onchange="renderPayments()">
+                                <option value="all">كل الحالات</option>
+                                <option value="paid">تم الدفع</option>
+                                <option value="unpaid">غير مدفوع</option>
+                                <option value="late">متأخر (بعد يوم 15)</option>
+                            </select>
                             <input type="text" id="payment-search-input" class="form-control"
                                 placeholder="بحث بالاسم..." style="width: 200px;" onkeyup="renderPayments()">
                         </div>

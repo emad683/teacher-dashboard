@@ -27,11 +27,14 @@ export function renderAttendanceTable(groupId, session) {
         
         students.forEach(s => {
             const status = session.records[s.id] === 'present' ? 'present' : 'absent';
-            
             if (status === 'present') presentCount++;
             else absentCount++;
             
-            const paymentBtn = s.paymentStatus === 'paid' 
+            const d = new Date();
+            const currentMonthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            const hasPaidThisMonth = appData.payments.some(p => p.studentId === s.id && (p.targetMonth === currentMonthStr || p.date.startsWith(currentMonthStr)));
+
+            const paymentBtn = hasPaidThisMonth
                 ? `<button class="btn btn-sm btn-success" disabled><i class="fas fa-check"></i> تم الدفع</button>`
                 : `<button class="btn btn-sm btn-outline text-success" onclick="quickPayForAttendance(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>`;
 
@@ -66,12 +69,16 @@ export function toggleAttendance(sessionId, studentId) {
 
 export function quickPayForAttendance(studentId) {
     const student = appData.students.find(s => s.id === studentId);
-    if (!student || student.paymentStatus === 'paid') return;
+    if (!student) return;
+
+    const d = new Date();
+    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const hasPaidThisMonth = appData.payments.some(p => p.studentId === student.id && (p.targetMonth === monthStr || p.date.startsWith(monthStr)));
+
+    if (hasPaidThisMonth) return;
     
     student.paymentStatus = 'paid';
     const price = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
-    const d = new Date();
-    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     
     appData.payments.push({
         id: Date.now(),

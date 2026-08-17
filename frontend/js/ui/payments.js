@@ -92,6 +92,7 @@ export function renderPayments() {
     const monthInput = document.getElementById('payment-month-filter');
     const searchInput = document.getElementById('payment-search-input')?.value.toLowerCase() || '';
     const gradeSelect = document.getElementById('payment-grade-filter');
+    const statusSelect = document.getElementById('payment-status-filter');
     
     if (!monthInput) return;
     
@@ -110,6 +111,7 @@ export function renderPayments() {
         });
     }
     const selectedGrade = gradeSelect ? gradeSelect.value : 'all';
+    const selectedStatus = statusSelect ? statusSelect.value : 'all';
 
     const tbody = document.querySelector('#payments-table tbody');
     if(!tbody) return;
@@ -128,7 +130,18 @@ export function renderPayments() {
         
         const hasPaid = appData.payments.some(p => p.studentId === s.id && (p.targetMonth === selectedMonth || p.date.startsWith(selectedMonth)));
         
+        const today = new Date();
+        const isLate = !hasPaid && (
+            (selectedMonth < currentMonth) || 
+            (selectedMonth === currentMonth && today.getDate() >= 15)
+        );
+
+        if (selectedStatus === 'paid' && !hasPaid) return;
+        if (selectedStatus === 'unpaid' && hasPaid) return;
+        if (selectedStatus === 'late' && !isLate) return;
+        
         let statusBadge = hasPaid ? '<span class="badge badge-success">تم الدفع</span>' : '<span class="badge badge-danger">غير مدفوع</span>';
+        if (!hasPaid && isLate) statusBadge = '<span class="badge badge-warning text-dark">متأخر</span>';
         if (s.paymentStatus === 'special') statusBadge = '<span class="badge badge-primary">خصم خاص</span>';
 
         const btnClass = hasPaid ? 'btn-danger' : 'btn-success';
