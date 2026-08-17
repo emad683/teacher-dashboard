@@ -50,13 +50,14 @@ export function renderStudentPayments(student) {
     
     studentPayments.forEach(p => {
         const d = new Date(p.date);
-        const monthKey = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+        const monthKey = p.targetMonth || `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
         const formattedDate = d.toLocaleString('ar-EG', { dateStyle: 'short', timeStyle: 'short' });
+        const notesStr = p.notes ? `<br><small class="text-muted">${p.notes}</small>` : '';
         
         tbody.innerHTML += `
             <tr>
                 <td dir="ltr">${formattedDate}</td>
-                <td>${monthKey}</td>
+                <td>${monthKey} ${notesStr}</td>
                 <td>${p.amount} ج.م</td>
                 <td>
                     <button class="btn btn-sm btn-outline text-danger" onclick="deletePayment(${p.id})"><i class="fas fa-trash"></i></button>
@@ -89,9 +90,12 @@ const origRenderPayments = renderPayments;
 export function renderPayments() {
     const monthSelect = document.getElementById('filter-payment-month');
     const sortVal = document.getElementById('sort-payments')?.value || 'date-desc';
+    const gradeSelect = document.getElementById('payment-grade-filter');
+    const selectedGrade = gradeSelect ? parseInt(gradeSelect.value) : 0;
     
     // populate months
     const months = [...new Set(appData.payments.map(p => {
+        if(p.targetMonth) return p.targetMonth;
         const d = new Date(p.date);
         return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
     }))].sort().reverse();
@@ -107,10 +111,17 @@ export function renderPayments() {
     const selectedMonth = monthSelect.value;
     
     let filtered = appData.payments;
+    
+    if (selectedGrade) {
+        filtered = filtered.filter(p => {
+            const s = appData.students.find(st => st.id === p.studentId);
+            return s && s.grade === selectedGrade;
+        });
+    }
+
     if(selectedMonth !== 'all') {
         filtered = filtered.filter(p => {
-            const d = new Date(p.date);
-            const m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            const m = p.targetMonth || (new Date(p.date).getFullYear() + '-' + String(new Date(p.date).getMonth() + 1).padStart(2, '0'));
             return m === selectedMonth;
         });
     }
@@ -136,10 +147,11 @@ export function renderPayments() {
         if(d.toISOString().split('T')[0] === todayStr) todayRev += p.amount;
         
         const s = appData.students.find(st => st.id === p.studentId);
+        const notesStr = p.notes ? `<br><small class="text-muted">${p.notes}</small>` : '';
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>${d.toLocaleString('ar-EG')}</td>
-            <td>${s ? s.name : 'طالب محذوف'}</td>
+            <td>${s ? s.name : 'طالب محذوف'} ${notesStr}</td>
             <td>${p.amount} ج.م</td>
             <td>
                 <button class="btn btn-sm btn-outline text-danger" onclick="deletePaymentGlobal(${p.id})"><i class="fas fa-trash"></i></button>
@@ -213,19 +225,37 @@ export function initPayments() {
         e.preventDefault();
         const amount = parseFloat(document.getElementById('manual-payment-amount').value);
         let monthStr = document.getElementById('manual-payment-month').value;
+        const notes = document.getElementById('manual-payment-notes')?.value || '';
         if(!monthStr) {
             const d = new Date();
             monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
+        
+        const student = appData.students.find(s => s.id === appData.currentStudentView);
+        if (student) {
+            student.paymentStatus = 'paid';
+        }
+
         appData.payments.push({
             id: Date.now(),
             studentId: appData.currentStudentView,
             amount: amount,
-            date: `${monthStr}-01T12:00:00.000Z`
+            date: new Date().toISOString(),
+            targetMonth: monthStr,
+            notes: notes
         });
         saveData();
         closeModal('modal-manual-payment');
-        viewStudent(appData.currentStudentView);
-        if(document.getElementById('page-payments').classList.contains('hidden') === false) renderPayments();
+        
+        // Update views depending on where we are
+        if (!document.getElementById('page-attendance').classList.contains('hidden')) {
+            document.getElementById('btn-load-attendance')?.click();
+        } else {
+            viewStudent(appData.currentStudentView);
+        }
+        
+        if(!document.getElementById('page-payments').classList.contains('hidden')) {
+            renderPayments();
+        }
     });
 }

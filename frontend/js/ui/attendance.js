@@ -31,6 +31,10 @@ export function renderAttendanceTable(groupId, session) {
             if (status === 'present') presentCount++;
             else absentCount++;
             
+            const paymentBtn = s.paymentStatus === 'paid' 
+                ? `<button class="btn btn-sm btn-success" disabled><i class="fas fa-check"></i> تم الدفع</button>`
+                : `<button class="btn btn-sm btn-outline text-success" onclick="openManualPaymentModalFor(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>`;
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>#${s.internalGroupId || s.id}</td>
@@ -40,9 +44,7 @@ export function renderAttendanceTable(groupId, session) {
                         ${status === 'present' ? '<i class="fas fa-check"></i> حاضر' : '<i class="fas fa-times"></i> غائب'}
                     </button>
                 </td>
-                <td>
-                    <button class="btn btn-sm btn-outline text-success" onclick="openManualPaymentModalFor(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>
-                </td>
+                <td>${paymentBtn}</td>
             `;
             tbody.appendChild(tr);
         });
