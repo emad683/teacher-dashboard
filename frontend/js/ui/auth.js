@@ -1,7 +1,7 @@
-export function initAuth() {
 import { initData } from '../api/apiService.js';
 import { navigateTo } from './navigation.js';
 
+export function initAuth() {
 document.getElementById('login-form')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
