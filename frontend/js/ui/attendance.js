@@ -33,7 +33,7 @@ export function renderAttendanceTable(groupId, session) {
             
             const paymentBtn = s.paymentStatus === 'paid' 
                 ? `<button class="btn btn-sm btn-success" disabled><i class="fas fa-check"></i> تم الدفع</button>`
-                : `<button class="btn btn-sm btn-outline text-success" onclick="openManualPaymentModalFor(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>`;
+                : `<button class="btn btn-sm btn-outline text-success" onclick="quickPayForAttendance(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>`;
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -64,17 +64,38 @@ export function toggleAttendance(sessionId, studentId) {
     }
 }
 
-export function openManualPaymentModalFor(studentId) {
-    appData.currentStudentView = studentId; 
-    const d = new Date();
-    document.getElementById('manual-payment-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    
+export function quickPayForAttendance(studentId) {
     const student = appData.students.find(s => s.id === studentId);
-    if(!student) return;
-    const actualPrice = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
-    document.getElementById('manual-payment-amount').value = actualPrice;
+    if (!student || student.paymentStatus === 'paid') return;
     
-    document.getElementById('modal-manual-payment').classList.add('show');
+    student.paymentStatus = 'paid';
+    const price = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
+    const d = new Date();
+    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    
+    appData.payments.push({
+        id: Date.now(),
+        studentId: studentId,
+        amount: price,
+        date: d.toISOString(),
+        targetMonth: monthStr,
+        notes: 'دفع سريع من سجل الحضور'
+    });
+    
+    saveData();
+    // Refresh attendance table
+    const groupId = parseInt(document.getElementById('attendance-group-filter').value);
+    const dateStr = document.getElementById('attendance-date').value;
+    if(groupId && dateStr) {
+        const session = appData.attendance.find(a => a.groupId === groupId && a.date === dateStr);
+        if (session) {
+            renderAttendanceTable(groupId, session);
+        }
+    }
+    // Update global revenue
+    if(!document.getElementById('page-payments').classList.contains('hidden')) {
+        renderPayments();
+    }
 }
 
 export function renderStudentAttendanceHistory(student) {

@@ -68,6 +68,7 @@ export function renderStudentPayments(student) {
 }
 
 export function openManualPaymentModal() {
+    document.getElementById('modal-manual-payment').classList.remove('hidden');
     document.getElementById('modal-manual-payment').classList.add('show');
     const d = new Date();
     document.getElementById('manual-payment-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
