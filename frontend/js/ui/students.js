@@ -107,10 +107,20 @@ export function deleteAllStudents() {
         appData.students = [];
         appData.payments = [];
         saveData();
-        renderDashboard();
-        renderStudents();
-        renderPayments();
-        alert('تم حذف جميع الطلاب بنجاح.');
+        appData.students = [];
+        appData.payments = [];
+        appData.attendance = [];
+        appData.globalExams = [];
+        
+        if (appData.progress) {
+            for (let grade in appData.progress) {
+                appData.progress[grade].forEach(task => {
+                    task.done = false;
+                });
+            }
+        }
+        alert('تم تفريغ بيانات الطلاب، المدفوعات، الحضور، والامتحانات، مع الاحتفاظ بالمجموعات وإلغاء تحديد المهام.');
+        window.location.reload();
     }
 }
 
