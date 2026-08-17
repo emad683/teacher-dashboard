@@ -8,8 +8,14 @@ export function updateDashboardStats() {
     let totalMax = 0;
     let pendingPayments = 0;
 
+    const today = new Date();
+    const currentMonthStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+
     appData.students.forEach(s => {
-        if (!s.paymentStatus) pendingPayments++;
+        const hasPaidCurrentMonth = appData.payments.some(p => p.studentId === s.id && (p.targetMonth === currentMonthStr || p.date.startsWith(currentMonthStr)));
+        if (!hasPaidCurrentMonth && today.getDate() >= 15) {
+            pendingPayments++;
+        }
         s.exams.forEach(e => {
             totalScore += e.score;
             totalMax += e.max;
