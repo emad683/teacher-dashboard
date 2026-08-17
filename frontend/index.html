@@ -59,6 +59,7 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li><a href="#" data-page="page-dashboard" class="nav-link active"><i class="fas fa-home"></i> <span>الرئيسية</span></a></li>
+                    <li><a href="#" data-page="page-attendance" class="nav-link"> <span>الحضور</span></a></li>
                     <li><a href="#" data-page="page-groups" class="nav-link"><i class="fas fa-users-cog"></i> <span>المجموعات</span></a></li>
                     <li><a href="#" data-page="page-exams" class="nav-link"><i class="fas fa-book-open"></i> <span>الامتحانات</span></a></li>
                     <li><a href="#" data-page="page-students" class="nav-link"><i class="fas fa-user-graduate"></i> <span>الطلاب</span></a></li>
@@ -98,6 +99,61 @@
 
             <div class="content-wrapper">
                 
+                <!-- صفحة الحضور -->
+                <div id="page-attendance" class="page-content hidden">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h3>تسجيل الحضور للمجموعات</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="flex-between" style="gap:1rem; flex-wrap:wrap;">
+                                <div class="form-group" style="flex:1;">
+                                    <label>الصف الدراسي</label>
+                                    <select id="attendance-grade-filter" class="form-control">
+                                        <option value="">اختر الصف...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label>المجموعة</label>
+                                    <select id="attendance-group-filter" class="form-control" disabled>
+                                        <option value="">اختر المجموعة...</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="flex:1;">
+                                    <label>تاريخ الحصة</label>
+                                    <input type="date" id="attendance-date" class="form-control">
+                                </div>
+                                <div class="form-group" style="display:flex; align-items:flex-end;">
+                                    <button class="btn btn-primary" id="btn-load-attendance">بدء التسجيل</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="attendance-students-container" class="card hidden">
+                        <div class="card-header flex-between">
+                            <h3>قائمة الطلاب</h3>
+                            <span class="badge badge-primary" id="attendance-stats">0 حاضر / 0 غائب</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+<table class="table" id="attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>الكود</th>
+                                        <th>اسم الطالب</th>
+                                        <th>حالة الحضور</th>
+                                        <th>الدفع السريع</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+</div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- 1. الرئيسية (Dashboard) -->
                 <div id="page-dashboard" class="page-content">
                     <div class="dashboard-stats">
@@ -145,7 +201,8 @@
                                 <button class="btn btn-sm btn-outline" onclick="navigateTo('page-students')">عرض الكل</button>
                             </div>
                             <div class="card-body p-0">
-                                <table class="table" id="recent-students-table">
+                                <div class="table-responsive">
+<table class="table" id="recent-students-table">
                                     <thead>
                                         <tr>
                                             <th>الرقم</th>
@@ -158,6 +215,7 @@
                                         <!-- يُضاف عبر JS -->
                                     </tbody>
                                 </table>
+</div>
                             </div>
                         </div>
                         <div class="card progress-summary-card">
@@ -214,7 +272,7 @@
                                 </div>
                                 <div class="form-group flex-1">
                                     <label>الدرجة النهائية</label>
-                                    <input type="number" id="new-exam-max" min="1" value="100" required>
+                                    <input type="number" id="new-exam-max" min="1" placeholder="100" required>
                                 </div>
                                 <div class="form-group" style="display: flex; align-items: flex-end;">
                                     <button type="submit" class="btn btn-primary" style="height: 42px;"><i class="fas fa-plus"></i> إنشاء الامتحان</button>
@@ -255,7 +313,8 @@
                                     <h4 class="mb-0">قائمة طلاب المجموعة:</h4>
                                     <input type="text" id="exam-search-input" class="form-control" placeholder="بحث باسم الطالب..." style="width: 250px;" onkeyup="filterExamStudents()">
                                 </div>
-                                <table class="table" id="exam-entry-table">
+                                <div class="table-responsive">
+<table class="table" id="exam-entry-table">
                                     <thead>
                                         <tr>
                                             <th>الرقم</th>
@@ -267,6 +326,7 @@
                                         <!-- يُضاف عبر JS -->
                                     </tbody>
                                 </table>
+</div>
                                 <div class="mt-4 text-center">
                                     <button class="btn btn-success btn-lg" id="btn-save-bulk-exam" style="padding: 0.75rem 3rem;"><i class="fas fa-save"></i> حفظ درجات جميع الطلاب</button>
                                 </div>
@@ -289,7 +349,8 @@
                                 </select>
                                 <input type="text" id="search-student" class="form-control" placeholder="بحث بالاسم..." style="flex: 1;">
                             </div>
-                            <table class="table" id="students-table">
+                            <div class="table-responsive">
+<table class="table" id="students-table">
                                 <thead>
                                     <tr>
                                         <th>الرقم</th>
@@ -304,6 +365,7 @@
                                     <!-- يُضاف عبر JS -->
                                 </tbody>
                             </table>
+</div>
                         </div>
                     </div>
                 </div>
@@ -405,7 +467,8 @@
                             <h3>نتائج الامتحانات</h3>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table" id="student-exams-table">
+                            <div class="table-responsive">
+<table class="table" id="student-exams-table">
                                 <thead>
                                     <tr>
                                         <th>التاريخ</th>
@@ -418,6 +481,28 @@
                                 <tbody>
                                 </tbody>
                             </table>
+</div>
+                        </div>
+                        </div>
+                    </div>
+
+                    <div class="card mt-4">
+                        <div class="card-header">
+                            <h3>سجل الحضور</h3>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+<table class="table" id="student-attendance-table">
+                                <thead>
+                                    <tr>
+                                        <th>التاريخ</th>
+                                        <th>حالة الحضور</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                </tbody>
+                            </table>
+</div>
                         </div>
                     </div>
 
@@ -427,7 +512,8 @@
                             <button class="btn btn-sm btn-success" onclick="openManualPaymentModal()"><i class="fas fa-plus"></i> تسجيل دفعة</button>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table" id="student-payments-table">
+                            <div class="table-responsive">
+<table class="table" id="student-payments-table">
                                 <thead>
                                     <tr>
                                         <th>التاريخ والوقت</th>
@@ -440,6 +526,7 @@
                                     <!-- عبر JS -->
                                 </tbody>
                             </table>
+</div>
                         </div>
                     </div>
                 </div>
@@ -474,7 +561,8 @@
                             </div>
                         </div>
                         <div class="card-body p-0">
-                            <table class="table" id="payments-table">
+                            <div class="table-responsive">
+<table class="table" id="payments-table">
                                 <thead>
                                     <tr>
                                         <th>الرقم</th>
@@ -487,6 +575,7 @@
                                 <tbody>
                                 </tbody>
                             </table>
+</div>
                         </div>
                     </div>
                 </div>
@@ -595,7 +684,98 @@
         </div>
     </div>
 
-    <!-- حاوية الطباعة -->
+    <!-- نافذة الدفع اليدوي السريع -->
+    <div id="modal-manual-payment" class="modal">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h3>تسجيل دفع سريع</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="manual-payment-form">
+                    <div class="form-group">
+                        <label>المبلغ (ج.م)</label>
+                        <input type="number" id="manual-payment-amount" class="form-control" required min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>لشهر</label>
+                        <input type="month" id="manual-payment-month" class="form-control" required>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block">تأكيد الدفع</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    <!-- نافذة الطباعة المخصصة -->
+    <div id="modal-print" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>إعدادات الطباعة</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="print-form">
+                    <div class="form-group">
+                        <label>ماذا تريد أن تطبع؟</label>
+                        <select id="print-target" class="form-control" required>
+                            <option value="all">كل الطلاب</option>
+                            <option value="grade-1">الصف الأول فقط</option>
+                            <option value="grade-2">الصف الثاني فقط</option>
+                            <option value="grade-3">الصف الثالث فقط</option>
+                            <option value="group">مجموعة محددة...</option>
+                        </select>
+                    </div>
+                    <div class="form-group hidden" id="print-group-wrapper">
+                        <label>اختر المجموعة</label>
+                        <select id="print-group" class="form-control"></select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>البيانات المراد طباعتها:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-top: 0.5rem;">
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-id" checked>
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>الكود</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-name" checked disabled>
+                                <div class="toggle-label" style="transform: scale(0.7); opacity: 0.5;"></div>
+                                <span>الاسم (إجباري)</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-grade" checked>
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>الصف/المجموعة</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-phone" checked>
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>رقم الهاتف</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-perf" checked>
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>التقييم/الأداء</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-payment" checked>
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>حالة الدفع</span>
+                            </label>
+                            <label class="toggle-switch" style="justify-content: flex-start; gap: 0.5rem;">
+                                <input type="checkbox" id="print-col-attendance">
+                                <div class="toggle-label" style="transform: scale(0.7);"></div>
+                                <span>آخر حضور</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <button type="button" id="btn-execute-print" class="btn btn-primary btn-block"><i class="fas fa-print"></i> بدء الطباعة</button>
+                </form>
+            </div>
+        </div>
+    </div>
     <div id="print-container" class="print-only"></div>
 
     <script src="script.js?v=2"></script>

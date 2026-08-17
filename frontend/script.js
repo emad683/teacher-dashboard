@@ -13,7 +13,8 @@ let appData = {
     currentGradeView: 1,
     currentProgressGrade: 1,
     currentStudentView: null,
-    globalExams: []
+    globalExams: [],
+    attendance: []
 };
 
 const gradeNames = {
@@ -34,10 +35,11 @@ async function initData() {
             const data = await response.json();
             if (data) {
                 appData = data;
+                appData.globalExams = appData.globalExams || [];
+                appData.attendance = appData.attendance || [];
                 if(!appData.progress) appData.progress = {1:[], 2:[], 3:[]};
                 if(!appData.gradePrices) appData.gradePrices = {1:0, 2:0, 3:0};
                 if(!appData.payments) appData.payments = [];
-                if(!appData.globalExams) appData.globalExams = [];
             } else {
                 await saveData();
             }
@@ -102,6 +104,10 @@ function navigateTo(pageId) {
     if (pageId === 'page-levels') renderLevels();
     if (pageId === 'page-progress') renderProgress();
     if (pageId === 'page-exams') renderExamsInit();
+    if (pageId === 'page-attendance') {
+        renderAttendanceGroups();
+        document.getElementById('attendance-date').value = new Date().toISOString().split('T')[0];
+    }
 
     document.querySelector('.sidebar').classList.remove('open');
 }
@@ -323,6 +329,129 @@ document.getElementById('btn-add-group').addEventListener('click', () => {
     openModal('modal-group');
 });
 
+// --- Custom Prices Settings ---
+document.getElementById('update-prices-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    appData.gradePrices[1] = parseFloat(document.getElementById('price-grade-1').value) || 0;
+    appData.gradePrices[2] = parseFloat(document.getElementById('price-grade-2').value) || 0;
+    appData.gradePrices[3] = parseFloat(document.getElementById('price-grade-3').value) || 0;
+    saveData();
+    alert('تم حفظ التسعيرة الجديدة بنجاح');
+});
+
+// --- Attendance System ---
+function renderAttendanceGroups() {
+    const gradeSelect = document.getElementById('attendance-grade-filter');
+    if(gradeSelect.options.length <= 1) {
+        gradeSelect.innerHTML = '<option value="">اختر الصف...</option>';
+        [1, 2, 3].forEach(g => {
+            gradeSelect.innerHTML += `<option value="${g}">${gradeNames[g]}</option>`;
+        });
+    }
+}
+
+document.getElementById('attendance-grade-filter')?.addEventListener('change', (e) => {
+    const grade = parseInt(e.target.value);
+    const groupSelect = document.getElementById('attendance-group-filter');
+    groupSelect.innerHTML = '<option value="">اختر المجموعة...</option>';
+    
+    if(grade) {
+        const groups = appData.groups.filter(g => g.grade === grade);
+        groups.forEach(g => {
+            groupSelect.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+        });
+        groupSelect.disabled = false;
+    } else {
+        groupSelect.disabled = true;
+    }
+    document.getElementById('attendance-students-container').classList.add('hidden');
+});
+
+document.getElementById('attendance-group-filter')?.addEventListener('change', () => {
+    document.getElementById('attendance-students-container').classList.add('hidden');
+});
+
+document.getElementById('btn-load-attendance')?.addEventListener('click', () => {
+    const groupId = parseInt(document.getElementById('attendance-group-filter').value);
+    const date = document.getElementById('attendance-date').value;
+    
+    if(!groupId || !date) {
+        alert('الرجاء اختيار المجموعة وتحديد التاريخ أولاً');
+        return;
+    }
+    
+    let session = appData.attendance.find(a => a.groupId === groupId && a.date === date);
+    if (!session) {
+        session = { id: Date.now(), groupId: groupId, date: date, records: {} };
+        appData.attendance.push(session);
+        saveData(); 
+    }
+    
+    renderAttendanceTable(groupId, session);
+});
+
+function renderAttendanceTable(groupId, session) {
+    const container = document.getElementById('attendance-students-container');
+    const tbody = document.querySelector('#attendance-table tbody');
+    tbody.innerHTML = '';
+    
+    const students = appData.students.filter(s => s.groupId === groupId);
+    if(students.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted">لا يوجد طلاب في هذه المجموعة</td></tr>';
+    } else {
+        let presentCount = 0;
+        let absentCount = 0;
+        
+        students.forEach(s => {
+            const status = session.records[s.id] === 'present' ? 'present' : 'absent';
+            
+            if (status === 'present') presentCount++;
+            else absentCount++;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>#${s.internalGroupId || s.id}</td>
+                <td><strong>${s.name}</strong></td>
+                <td>
+                    <button class="btn btn-sm ${status === 'present' ? 'btn-success' : 'btn-danger'}" onclick="toggleAttendance(${session.id}, ${s.id})">
+                        ${status === 'present' ? '<i class="fas fa-check"></i> حاضر' : '<i class="fas fa-times"></i> غائب'}
+                    </button>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-outline text-success" onclick="openManualPaymentModalFor(${s.id})"><i class="fas fa-money-bill"></i> دفع سريع</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        document.getElementById('attendance-stats').innerText = `${presentCount} حاضر / ${absentCount} غائب`;
+    }
+    container.classList.remove('hidden');
+}
+
+function toggleAttendance(sessionId, studentId) {
+    const session = appData.attendance.find(a => a.id === sessionId);
+    if(session) {
+        const current = session.records[studentId];
+        session.records[studentId] = current === 'present' ? 'absent' : 'present';
+        saveData();
+        renderAttendanceTable(session.groupId, session);
+    }
+}
+
+function openManualPaymentModalFor(studentId) {
+    appData.currentStudentView = studentId; 
+    const d = new Date();
+    document.getElementById('manual-payment-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    
+    const student = appData.students.find(s => s.id === studentId);
+    if(!student) return;
+    const actualPrice = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
+    document.getElementById('manual-payment-amount').value = actualPrice;
+    
+    document.getElementById('modal-manual-payment').classList.remove('hidden');
+}
+
 document.getElementById('group-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const grade = parseInt(document.getElementById('group-grade-val').value);
@@ -402,12 +531,28 @@ function renderStudents(forceGroupId = null) {
 
     filtered.forEach(s => {
         const group = appData.groups.find(g => g.id === s.groupId);
+        let attendanceBadge = '';
+        
+        if (forceGroupId) {
+            const groupSessions = appData.attendance.filter(a => a.groupId === forceGroupId);
+            if (groupSessions.length > 0) {
+                groupSessions.sort((a,b) => new Date(b.date) - new Date(a.date));
+                const latestSession = groupSessions[0];
+                const status = latestSession.records[s.id] === 'present' ? 'present' : 'absent';
+                if (status === 'present') {
+                    attendanceBadge = `<br><span class="badge badge-success" style="font-size:0.7rem; padding: 2px 4px;">حاضر (آخر حصة)</span>`;
+                } else {
+                    attendanceBadge = `<br><span class="badge badge-danger" style="font-size:0.7rem; padding: 2px 4px;">غائب (آخر حصة)</span>`;
+                }
+            }
+        }
+
         const tr = document.createElement('tr');
         
         tr.innerHTML = `
             <td>#${s.internalGroupId || s.id}</td>
             <td><strong>${s.name}</strong></td>
-            <td>${gradeNames[s.grade]}<br><small class="text-muted">${group ? group.name : ''}</small></td>
+            <td>${gradeNames[s.grade]}<br><small class="text-muted">${group ? group.name : ''}</small>${attendanceBadge}</td>
             <td>${s.phone1}</td>
             <td>${calculatePerformance(s)}%</td>
             <td>
@@ -554,6 +699,7 @@ function viewStudent(id) {
 
     renderExamsTableForStudent(s);
     renderStudentPayments(s);
+    renderStudentAttendanceHistory(s);
     navigateTo('page-student-details');
 }
 
@@ -619,6 +765,30 @@ function deleteExam(examId) {
         saveData();
         viewStudent(appData.currentStudentView);
     }
+}
+
+function renderStudentAttendanceHistory(student) {
+    const tbody = document.querySelector('#student-attendance-table tbody');
+    tbody.innerHTML = '';
+    
+    const groupSessions = appData.attendance.filter(a => a.groupId === student.groupId);
+    if(groupSessions.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-center text-muted">لا يوجد سجل حضور مسجل</td></tr>';
+        return;
+    }
+    
+    groupSessions.sort((a,b) => new Date(b.date) - new Date(a.date));
+    
+    groupSessions.forEach(session => {
+        const status = session.records[student.id] === 'present' ? 'present' : 'absent';
+        const badge = status === 'present' ? '<span class="badge badge-success">حاضر</span>' : '<span class="badge badge-danger">غائب</span>';
+        tbody.innerHTML += `
+            <tr>
+                <td>${session.date}</td>
+                <td>${badge}</td>
+            </tr>
+        `;
+    });
 }
 
 function renderStudentPayments(student) {
@@ -1219,3 +1389,365 @@ function printReport(type) {
 }
 
 console.log("Teacher System Loaded - Arabic Version RTL");
+// --- Group Evaluation ---
+function getGroupPerformance(groupId) {
+    const students = appData.students.filter(s => s.groupId === groupId);
+    if(students.length === 0) return 0;
+    let totalPerf = 0;
+    students.forEach(s => { totalPerf += calculatePerformance(s); });
+    return Math.round(totalPerf / students.length);
+}
+
+// --- Modified Dashboard ---
+const origRenderDashboard = renderDashboard;
+renderDashboard = function() {
+    origRenderDashboard();
+    renderWeakestGroups();
+}
+
+function renderWeakestGroups() {
+    const tbody = document.querySelector('#weak-groups-table tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    [1, 2, 3].forEach(grade => {
+        const gradeGroups = appData.groups.filter(g => g.grade === grade);
+        if(gradeGroups.length > 0) {
+            let weakest = gradeGroups[0];
+            let minPerf = getGroupPerformance(weakest.id);
+            
+            gradeGroups.forEach(g => {
+                const p = getGroupPerformance(g.id);
+                if(p < minPerf) { minPerf = p; weakest = g; }
+            });
+            
+            const badgeClass = minPerf >= 75 ? 'badge-success' : (minPerf >= 50 ? 'badge-warning' : 'badge-danger');
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${gradeNames[grade]}</td>
+                <td><strong>${weakest.name}</strong></td>
+                <td><span class="badge ${badgeClass}">${minPerf}%</span></td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+}
+
+// --- Override renderStudents ---
+document.getElementById('sort-students')?.addEventListener('change', () => renderStudents());
+document.getElementById('filter-unpaid')?.addEventListener('change', () => renderStudents());
+
+const origRenderStudents = renderStudents;
+renderStudents = function(forceGroupId = null) {
+    if(document.getElementById('filter-grade').options.length <= 1) populateGradeFilters();
+    
+    const tbody = document.querySelector('#students-table tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    const filterGrade = document.getElementById('filter-grade').value;
+    const search = document.getElementById('search-student').value.toLowerCase();
+    const sortVal = document.getElementById('sort-students')?.value || 'id-asc';
+    const unpaidOnly = document.getElementById('filter-unpaid')?.checked || false;
+    
+    let filtered = appData.students;
+    
+    if (forceGroupId) {
+        filtered = filtered.filter(s => s.groupId === forceGroupId);
+    } else {
+        if (filterGrade !== 'all') {
+            filtered = filtered.filter(s => s.grade === parseInt(filterGrade));
+        }
+        if (search) {
+            filtered = filtered.filter(s => s.name.toLowerCase().includes(search));
+        }
+        if (unpaidOnly) {
+            filtered = filtered.filter(s => s.paymentStatus !== 'paid' && s.paymentStatus !== 'special');
+        }
+    }
+    
+    // Sort
+    filtered.sort((a, b) => {
+        if(sortVal === 'id-asc') return (a.internalGroupId||a.id) - (b.internalGroupId||b.id);
+        if(sortVal === 'id-desc') return (b.internalGroupId||b.id) - (a.internalGroupId||a.id);
+        if(sortVal === 'name-asc') return a.name.localeCompare(b.name, 'ar');
+        if(sortVal === 'name-desc') return b.name.localeCompare(a.name, 'ar');
+        if(sortVal === 'score-desc') return calculatePerformance(b) - calculatePerformance(a);
+        return 0;
+    });
+
+    if(filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">لم يتم العثور على طلاب</td></tr>';
+    }
+
+    filtered.forEach(s => {
+        const group = appData.groups.find(g => g.id === s.groupId);
+        let attendanceBadge = '';
+        
+        if (forceGroupId) {
+            const groupSessions = appData.attendance.filter(a => a.groupId === forceGroupId);
+            if (groupSessions.length > 0) {
+                groupSessions.sort((a,b) => new Date(b.date) - new Date(a.date));
+                const latestSession = groupSessions[0];
+                const status = latestSession.records[s.id] === 'present' ? 'present' : 'absent';
+                if (status === 'present') {
+                    attendanceBadge = `<br><span class="badge badge-success" style="font-size:0.7rem; padding: 2px 4px;">حاضر (آخر حصة)</span>`;
+                } else {
+                    attendanceBadge = `<br><span class="badge badge-danger" style="font-size:0.7rem; padding: 2px 4px;">غائب (آخر حصة)</span>`;
+                }
+            }
+        }
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>#${s.internalGroupId || s.id}</td>
+            <td><strong>${s.name}</strong></td>
+            <td>${gradeNames[s.grade]}<br><small class="text-muted">${group ? group.name : ''}</small>${attendanceBadge}</td>
+            <td>${s.phone1}</td>
+            <td>${calculatePerformance(s)}%</td>
+            <td>
+                <button class="btn btn-sm btn-outline text-primary" onclick="viewStudent(${s.id})" title="عرض الملف"><i class="fas fa-user"></i></button>
+                <button class="btn btn-sm btn-outline text-danger" onclick="deleteStudent(${s.id})" title="حذف الطالب"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- Override renderGroupsGrid ---
+document.getElementById('sort-groups')?.addEventListener('change', () => renderGroupsGrid());
+
+const origRenderGroupsGrid = renderGroupsGrid;
+renderGroupsGrid = function() {
+    const grid = document.getElementById('groups-grid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    
+    let filtered = appData.groups;
+    if(appData.currentGradeView !== 'all') {
+        filtered = filtered.filter(g => g.grade === appData.currentGradeView);
+    }
+    
+    const sortVal = document.getElementById('sort-groups')?.value || 'name-asc';
+    filtered.sort((a, b) => {
+        if(sortVal === 'name-asc') return a.name.localeCompare(b.name, 'ar');
+        if(sortVal === 'name-desc') return b.name.localeCompare(a.name, 'ar');
+        if(sortVal === 'perf-desc') return getGroupPerformance(b.id) - getGroupPerformance(a.id);
+        if(sortVal === 'perf-asc') return getGroupPerformance(a.id) - getGroupPerformance(b.id);
+        return 0;
+    });
+
+    if(filtered.length === 0) {
+        grid.innerHTML = '<p class="text-muted text-center" style="grid-column: 1/-1;">لا توجد مجموعات مسجلة.</p>';
+        return;
+    }
+
+    filtered.forEach(g => {
+        const studentCount = appData.students.filter(s => s.groupId === g.id).length;
+        const perf = getGroupPerformance(g.id);
+        const badgeClass = perf >= 75 ? 'text-success' : (perf >= 50 ? 'text-warning' : 'text-danger');
+        
+        const card = document.createElement('div');
+        card.className = 'group-card';
+        card.innerHTML = `
+            <h4>${g.name}</h4>
+            <div class="group-meta">
+                <span><i class="fas fa-layer-group"></i> ${gradeNames[g.grade]}</span>
+                <span><i class="far fa-clock"></i> ${g.schedule}</span>
+                <span><i class="fas fa-users"></i> ${studentCount} طالب</span>
+                <span class="${badgeClass}"><i class="fas fa-chart-line"></i> تقييم المجموعة: ${perf}%</span>
+            </div>
+            <div class="flex-between mt-3">
+                <button class="btn btn-sm btn-primary" onclick="filterStudentsByGroup(${g.id})">الطلاب</button>
+                <button class="btn btn-sm btn-outline text-danger" onclick="deleteGroup(${g.id})"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// --- Override renderPayments ---
+document.getElementById('sort-payments')?.addEventListener('change', () => renderPayments());
+
+const origRenderPayments = renderPayments;
+renderPayments = function() {
+    const monthSelect = document.getElementById('filter-payment-month');
+    const sortVal = document.getElementById('sort-payments')?.value || 'date-desc';
+    
+    // populate months
+    const months = [...new Set(appData.payments.map(p => {
+        const d = new Date(p.date);
+        return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+    }))].sort().reverse();
+
+    if(monthSelect.options.length <= 1) {
+        monthSelect.innerHTML = '<option value="all">كل الشهور</option>';
+        months.forEach(m => {
+            monthSelect.innerHTML += `<option value="${m}">${m}</option>`;
+        });
+        if(months.length > 0) monthSelect.value = months[0];
+    }
+    
+    const selectedMonth = monthSelect.value;
+    
+    let filtered = appData.payments;
+    if(selectedMonth !== 'all') {
+        filtered = filtered.filter(p => {
+            const d = new Date(p.date);
+            const m = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+            return m === selectedMonth;
+        });
+    }
+    
+    filtered.sort((a,b) => {
+        if(sortVal === 'date-desc') return new Date(b.date) - new Date(a.date);
+        if(sortVal === 'date-asc') return new Date(a.date) - new Date(b.date);
+        if(sortVal === 'amount-desc') return b.amount - a.amount;
+        return 0;
+    });
+
+    const tbody = document.querySelector('#payments-table tbody');
+    if(!tbody) return;
+    tbody.innerHTML = '';
+    
+    let totalRev = 0;
+    let todayRev = 0;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    filtered.forEach(p => {
+        totalRev += p.amount;
+        const d = new Date(p.date);
+        if(d.toISOString().split('T')[0] === todayStr) todayRev += p.amount;
+        
+        const s = appData.students.find(st => st.id === p.studentId);
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${d.toLocaleString('ar-EG')}</td>
+            <td>${s ? s.name : 'طالب محذوف'}</td>
+            <td>${p.amount} ج.م</td>
+            <td>
+                <button class="btn btn-sm btn-outline text-danger" onclick="deletePaymentGlobal(${p.id})"><i class="fas fa-trash"></i></button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    document.getElementById('stat-revenue-month').innerText = totalRev + ' ج.م';
+    document.getElementById('stat-revenue-today').innerText = todayRev + ' ج.م';
+}
+
+function deletePaymentGlobal(id) {
+    if(confirm('هل أنت متأكد من حذف هذه الدفعة نهائياً؟')) {
+        appData.payments = appData.payments.filter(p => p.id !== id);
+        saveData();
+        renderPayments();
+    }
+}
+
+// --- Printing Logic ---
+document.getElementById('print-target')?.addEventListener('change', (e) => {
+    const val = e.target.value;
+    const wrapper = document.getElementById('print-group-wrapper');
+    if(val === 'group') {
+        const groupSelect = document.getElementById('print-group');
+        groupSelect.innerHTML = '';
+        appData.groups.forEach(g => {
+            groupSelect.innerHTML += `<option value="${g.id}">${gradeNames[g.grade]} - ${g.name}</option>`;
+        });
+        wrapper.classList.remove('hidden');
+    } else {
+        wrapper.classList.add('hidden');
+    }
+});
+
+function printReport(type) {
+    // Override the old print buttons to open modal
+    document.getElementById('modal-print').classList.add('show');
+}
+
+// Attach to top header print button if it exists, otherwise just override window.printReport
+document.getElementById('btn-execute-print')?.addEventListener('click', () => {
+    const target = document.getElementById('print-target').value;
+    let studentsToPrint = [];
+    let title = "تقرير الطلاب";
+    
+    if (target === 'all') {
+        studentsToPrint = appData.students;
+    } else if (target.startsWith('grade-')) {
+        const grade = parseInt(target.split('-')[1]);
+        studentsToPrint = appData.students.filter(s => s.grade === grade);
+        title = `تقرير طلاب ${gradeNames[grade]}`;
+    } else if (target === 'group') {
+        const groupId = parseInt(document.getElementById('print-group').value);
+        studentsToPrint = appData.students.filter(s => s.groupId === groupId);
+        const group = appData.groups.find(g => g.id === groupId);
+        title = `تقرير مجموعة: ${group ? group.name : ''}`;
+    }
+    
+    // Check columns
+    const cols = {
+        id: document.getElementById('print-col-id').checked,
+        name: true, // required
+        grade: document.getElementById('print-col-grade').checked,
+        phone: document.getElementById('print-col-phone').checked,
+        perf: document.getElementById('print-col-perf').checked,
+        payment: document.getElementById('print-col-payment').checked,
+        attendance: document.getElementById('print-col-attendance').checked
+    };
+    
+    const container = document.getElementById('print-container');
+    
+    let html = `
+        <div class="print-header">
+            <h1>${title}</h1>
+            <p>العدد الإجمالي: ${studentsToPrint.length} طالب</p>
+            <p>تاريخ الطباعة: ${new Date().toLocaleDateString('ar-EG')}</p>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    ${cols.id ? '<th>الكود</th>' : ''}
+                    <th>اسم الطالب</th>
+                    ${cols.grade ? '<th>الصف / المجموعة</th>' : ''}
+                    ${cols.phone ? '<th>الهاتف</th>' : ''}
+                    ${cols.perf ? '<th>التقييم</th>' : ''}
+                    ${cols.payment ? '<th>الدفع</th>' : ''}
+                    ${cols.attendance ? '<th>آخر حضور</th>' : ''}
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    studentsToPrint.forEach(s => {
+        const group = appData.groups.find(g => g.id === s.groupId);
+        let attendanceStr = '-';
+        if(cols.attendance && group) {
+            const groupSessions = appData.attendance.filter(a => a.groupId === group.id);
+            if(groupSessions.length > 0) {
+                groupSessions.sort((a,b) => new Date(b.date) - new Date(a.date));
+                const status = groupSessions[0].records[s.id];
+                attendanceStr = status === 'present' ? 'حاضر' : (status === 'absent' ? 'غائب' : 'لم يسجل');
+            }
+        }
+        
+        let paymentStr = s.paymentStatus === 'paid' ? 'دفع' : (s.paymentStatus === 'special' ? 'معفى' : 'لم يدفع');
+        
+        html += `
+            <tr>
+                ${cols.id ? `<td>#${s.internalGroupId || s.id}</td>` : ''}
+                <td><strong>${s.name}</strong></td>
+                ${cols.grade ? `<td>${gradeNames[s.grade]} - ${group ? group.name : ''}</td>` : ''}
+                ${cols.phone ? `<td>${s.phone1}</td>` : ''}
+                ${cols.perf ? `<td>${calculatePerformance(s)}%</td>` : ''}
+                ${cols.payment ? `<td>${paymentStr}</td>` : ''}
+                ${cols.attendance ? `<td>${attendanceStr}</td>` : ''}
+            </tr>
+        `;
+    });
+    
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+    
+    document.getElementById('modal-print').classList.remove('show');
+    window.print();
+});
