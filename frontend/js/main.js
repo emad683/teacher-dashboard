@@ -18,7 +18,7 @@ import { changePaymentStatusForMonth, deletePaymentGlobal, openManualPaymentModa
 import { saveGradePrice } from './ui/levels.js';
 import { toggleTask, deleteTask } from './ui/progress.js';
 import { openEditExamModal, deleteExam, filterExamStudents } from './ui/exams.js';
-import { toggleAttendance, openManualPaymentModalFor } from './ui/attendance.js';
+import { toggleAttendance, quickPayForAttendance } from './ui/attendance.js';
 import { printReport } from './ui/printing.js';
 import { navigateTo } from './ui/navigation.js';
 
@@ -38,7 +38,7 @@ window.openEditExamModal = openEditExamModal;
 window.deleteExam = deleteExam;
 window.filterExamStudents = filterExamStudents;
 window.toggleAttendance = toggleAttendance;
-window.openManualPaymentModalFor = openManualPaymentModalFor;
+window.quickPayForAttendance = quickPayForAttendance;
 window.printReport = printReport;
 window.navigateTo = navigateTo;
 
