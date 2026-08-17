@@ -104,7 +104,7 @@ export function initGroups() {
     saveData();
     closeModal('modal-group');
     renderGroupsGrid();
-  });
+  })};
 
 
 export function deleteGroup(id) {
