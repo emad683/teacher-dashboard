@@ -449,7 +449,7 @@ function openManualPaymentModalFor(studentId) {
     const actualPrice = student.customPrice !== null ? student.customPrice : (appData.gradePrices[student.grade] || 0);
     document.getElementById('manual-payment-amount').value = actualPrice;
     
-    document.getElementById('modal-manual-payment').classList.remove('hidden');
+    document.getElementById('modal-manual-payment').classList.add('show');
 }
 
 document.getElementById('group-form')?.addEventListener('submit', (e) => {
@@ -739,7 +739,7 @@ function openEditExamModal(examId) {
     document.getElementById('edit-exam-score').value = exam.score;
     document.getElementById('edit-exam-score').max = exam.max;
     
-    document.getElementById('modal-edit-exam').classList.remove('hidden');
+    document.getElementById('modal-edit-exam').classList.add('show');
 }
 
 document.getElementById('edit-exam-form')?.addEventListener('submit', (e) => {
@@ -821,7 +821,7 @@ function renderStudentPayments(student) {
 }
 
 function openManualPaymentModal() {
-    document.getElementById('modal-manual-payment').classList.remove('hidden');
+    document.getElementById('modal-manual-payment').classList.add('show');
     const d = new Date();
     document.getElementById('manual-payment-month').value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     
