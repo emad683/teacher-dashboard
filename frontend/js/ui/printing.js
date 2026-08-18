@@ -1,11 +1,11 @@
 import { appData } from '../state/appState.js';
 import { gradeNames } from '../config.js';
 import { calculatePerformance } from '../utils/helpers.js';
-import { openModal } from './modals.js';
+import { openModal, closeModal } from './modals.js';
 
 export function printReport(type) {
     // Override the old print buttons to open modal
-    document.getElementById('modal-print').classList.add('show');
+    openModal('modal-print');
 }
 
 
@@ -102,7 +102,7 @@ export function initPrinting() {
         
         html += `</tbody></table>`;
         container.innerHTML = html;
-        document.getElementById('modal-print').classList.remove('show');
+        closeModal('modal-print');
                 
         // Give the DOM a tiny moment to hide the modal before triggering the browser's print dialog
         setTimeout(() => {
