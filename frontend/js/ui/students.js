@@ -26,6 +26,7 @@ export function renderStudents(forceGroupId = null) {
     tbody.innerHTML = '';
     
     const filterGrade = document.getElementById('filter-grade').value;
+    const filterGroup = document.getElementById('filter-group')?.value || 'all';
     const search = document.getElementById('search-student').value.toLowerCase();
     const sortVal = document.getElementById('sort-students')?.value || 'id-asc';
     const unpaidOnly = document.getElementById('filter-unpaid')?.checked || false;
@@ -37,6 +38,9 @@ export function renderStudents(forceGroupId = null) {
     } else {
         if (filterGrade !== 'all') {
             filtered = filtered.filter(s => s.grade === parseInt(filterGrade));
+        }
+        if (filterGroup !== 'all') {
+            filtered = filtered.filter(s => s.groupId === parseInt(filterGroup));
         }
         if (search) {
             filtered = filtered.filter(s => s.name.toLowerCase().includes(search));
@@ -192,7 +196,21 @@ export function viewStudent(id) {
 }
 
 export function initStudents() {
-    document.getElementById('filter-grade')?.addEventListener('change', () => renderStudents());
+    document.getElementById('filter-grade')?.addEventListener('change', (e) => {
+        const grade = e.target.value;
+        const groupFilter = document.getElementById('filter-group');
+        if (groupFilter) {
+            groupFilter.innerHTML = '<option value="all">كل المجموعات</option>';
+            if (grade !== 'all') {
+                const groups = appData.groups.filter(g => g.grade === parseInt(grade));
+                groups.forEach(g => {
+                    groupFilter.innerHTML += `<option value="${g.id}">${g.name}</option>`;
+                });
+            }
+        }
+        renderStudents();
+    });
+    document.getElementById('filter-group')?.addEventListener('change', () => renderStudents());
     document.getElementById('search-student')?.addEventListener('input', () => renderStudents());
     document.getElementById('sort-students')?.addEventListener('change', () => renderStudents());
     document.getElementById('filter-unpaid')?.addEventListener('change', () => renderStudents());
