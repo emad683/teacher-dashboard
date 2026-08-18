@@ -14,7 +14,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey12345'; // Use env v
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, '../frontend')));
 
