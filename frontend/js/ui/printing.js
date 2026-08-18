@@ -103,6 +103,10 @@ export function initPrinting() {
         html += `</tbody></table>`;
         container.innerHTML = html;
         document.getElementById('modal-print').classList.remove('show');
-        window.print();
+                
+        // Give the DOM a tiny moment to hide the modal before triggering the browser's print dialog
+        setTimeout(() => {
+            window.print();
+        }, 300);
     });
 }
