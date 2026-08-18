@@ -141,6 +141,8 @@ app.delete('/api/admin/users/:id', authenticateToken, isAdmin, async (req, res) 
     
     try {
         await pool.query('DELETE FROM users WHERE id = $1', [id]);
+        // Reset sequence to current max ID so deleting the last user frees up its ID
+        await pool.query(`SELECT setval(pg_get_serial_sequence('users', 'id'), COALESCE(MAX(id), 1), MAX(id) IS NOT NULL) FROM users;`);
         res.json({ message: 'User deleted' });
     } catch (err) {
         res.status(500).json({ error: 'Database error' });
